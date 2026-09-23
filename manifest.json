@@ -18,12 +18,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
-    },
-    {
-      "src": "aviao-icone.png",
-      "sizes": "any",
-      "type": "image/png",
-      "purpose": "any maskable"
     }
   ]
 }
