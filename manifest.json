@@ -1,25 +1,14 @@
-{
-  "name": "Simulador ANAC — Piloto Privado",
-  "short_name": "Simulador PPA",
-  "description": "Simulador de estudo para prova de Piloto Privado da ANAC: 5 matérias, 100 questões com correção visual verde e vermelha.",
-  "id": "/simulador-anac-ppaa/",
-  "start_url": "/simulador-anac-ppaa/",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#003366",
-  "theme_color": "#0066cc",
-  "icons": [
-    {
-      "src": "aviao-icone.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "aviao-icone.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
-}
+"icons": [
+  {
+    "src": "https://danielelocop-rgb.github.io/simulador-anac-ppaa/aviao-icone.png",
+    "sizes": "192x192",
+    "type": "image/png",
+    "purpose": "any maskable"
+  },
+  {
+    "src": "https://danielelocop-rgb.github.io/simulador-anac-ppaa/aviao-icone.png",
+    "sizes": "512x512",
+    "type": "image/png",
+    "purpose": "any maskable"
+  }
+]
