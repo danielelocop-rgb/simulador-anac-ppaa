@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#003366">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="aviao-icone.png">
+    <link rel="apple-touch-icon" href="aviao-icone.png">
+    <title>Simulador ANAC — Piloto Privado</title>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js');
+}
+</script>
+    <style>
+        * { margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Arial, sans-serif; box-sizing: border-box; }
+        :root {
+            --azul-escuro: #003366;
+            --azul-medio: #0066cc;
+            --azul-claro: #eaf2f8;
+            --dourado: #ffcc00;
+            --verde: #28a745;
+            --vermelho: #dc3545;
+            --sombra: 0 4px 12px rgba(0,51,102,0.15);
+        }
+        body { background: linear-gradient(180deg, #eaf2f8 0%, #d4e4f4 100%); min-height: 100vh; padding: 16px; }
+
+        /* Tela de Acesso */
+        #tela-acesso {
+            position: fixed; inset: 0;
+            background: linear-gradient(135deg, #003366 0%, #0066cc 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 999; padding: 20px;
+        }
+        .logo-aviao { width: 120px; height: 120px; margin-bottom: 20px; }
+        #tela-acesso h1 { color: white; font-size: 26px; margin-bottom: 8px; text-align: center; }
+        #tela-acesso p { color: #b3d1f0; margin-bottom: 30px; font-size: 15px; }
+        #chave {
+            width: 100%; max-width: 300px; padding: 16px 20px; font-size: 18px;
+            border: none; border-radius: 12px; text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .btn-entrar {
+            margin-top: 20px; padding: 14px 40px; font-size: 18px; font-weight: bold;
+            background: var(--dourado); color: var(--azul-escuro);
+            border: none; border-radius: 12px; cursor: pointer;
+            box-shadow: 0 4px 10px rgba(255,204,0,0.3);
+            transition: transform 0.2s;
+        }
+        .btn-entrar:active { transform: scale(0.97); }
+        .erro { color: #ffb3b3; margin-top: 15px; display: none; font-size: 14px; }
+
+        /* Telas */
+        .tela { display: none; max-width: 760px; margin: 0 auto; animation: fadeIn 0.3s ease; }
+        .ativa { display: block; }
+        @keyframes fadeIn { from {opacity:0; transform:translateY(10px);} to {opacity:1; transform:none;} }
+
+        .cabecalho {
+            text-align: center; margin-bottom: 24px; padding: 20px;
+            background: white; border-radius: 16px; box-shadow: var(--sombra);
+        }
+        .cabecalho h1 { color: var(--azul-escuro); font-size: 22px; margin-bottom: 4px; }
+        .cabecalho p { color: #666; font-size: 14px; }
+
+        .card {
+            background: white; border-radius: 16px; padding: 20px; margin-bottom: 16px;
+            box-shadow: var(--sombra);
+        }
+        .btn-materia {
+            display: flex; align-items: center; gap: 12px; width: 100%;
+            padding: 16px 20px; margin: 8px 0;
+            background: linear-gradient(90deg, #0066cc, #0077ed);
+            color: white; border: none; border-radius: 12px;
+            font-size: 16px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; text-align: left;
+        }
+        .btn-materia:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,102,204,0.3); }
+        .btn-completo { background: linear-gradient(90deg, var(--azul-escuro), #004d99); font-size: 17px; padding: 18px; }
+        hr { border: none; border-top: 1px solid #e8eef3; margin: 16px 0; }
+
+        /* Questões */
+        .topo {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #e8eef3;
+        }
+        .nome-materia { color: var(--azul-escuro); font-weight: bold; font-size: 20px; }
+        .contador {
+            background: var(--azul-claro); color: var(--azul-escuro);
+            padding: 6px 14px; border-radius: 20px; font-weight: 600; font-size: 14px;
+        }
+
+        .questao {
+            background: white; border-radius: 16px; padding: 26px; margin-bottom: 20px;
+            box-shadow: var(--sombra);
+        }
+        .pergunta {
+            font-size: 19px; font-weight: 600; color: var(--azul-escuro);
+            margin-bottom: 26px; line-height: 1.6;
+        }
+        .opcao {
+            padding: 16px 20px; margin: 10px 0;
+            background: var(--azul-claro); border-left: 4px solid transparent;
+            border-radius: 10px; font-size: 16px; cursor: pointer;
+            transition: all 0.25s;
+        }
+        .opcao:hover:not(.bloqueada) {
+            background: #d4e4f4; transform: translateX(4px);
+        }
+        .opcao.bloqueada { cursor: default; pointer-events: none; opacity: 0.9; }
+        .opcao.correta {
+            background: #e6f9e6 !important; border-left-color: var(--verde) !important;
+            color: #155724 !important; font-weight: bold;
+        }
+        .opcao.errada {
+            background: #ffebee !important; border-left-color: var(--vermelho) !important;
+            color: #721c24 !important; font-weight: bold;
+        }
+
+        /* Botões */
+        .botoes { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+        .btn {
+            flex: 1; min-width: 130px; padding: 15px; border: none; border-radius: 12px;
+            font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.2s;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-voltar { background: #e8eef3; color: #444; }
+        .btn-prox { background: var(--azul-medio); color: white; }
+        .btn-final { background: var(--verde); color: white; }
+        .oculto { display: none !important; }
+
+        /* Resultado */
+        .resultado {
+            padding: 36px 24px; border-radius: 16px; text-align: center;
+            font-size: 20px; font-weight: bold; margin-top: 20px; line-height: 2;
+            animation: scaleIn 0.4s ease;
+        }
+        @keyframes scaleIn { from {opacity:0; transform:scale(0.9);} to {opacity:1; transform:none;} }
+        .aprovado { background: linear-gradient(135deg, #e6f9e6, #c8f0c8); color: #155724; border: 3px solid var(--verde); }
+        .reprovado { background: linear-gradient(135deg, #ffebee, #ffd6d6); color: #721c24; border: 3px solid var(--vermelho); }
+
+        /* Histórico */
+        .historico { margin-top: 16px; }
+        .historico h3 { color: var(--azul-escuro); font-size: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .item-hist {
+            padding: 10px 0; border-bottom: 1px solid #eee;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .item-hist:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+
+<!-- Tela de Acesso -->
+<div id="tela-acesso">
+    <img src="aviao-icone.png" alt="Avião" class="logo-aviao" onerror="this.style.display='none'">
+    <h1>✈️ Simulador ANAC</h1>
+    <p>Piloto Privado — PPA</p>
+    <input type="password" id="chave" placeholder="Digite sua chave de acesso">
+    <button class="btn-entrar" onclick="verificarChave()">ENTRAR</button>
+    <p class="erro" id="msg-erro">Chave incorreta! Tente novamente.</p>
+</div>
+
+<!-- Tela Inicial -->
+<div id="inicial" class="tela">
+    <div class="cabecalho">
+        <h1>📚 Simulador ANAC — Piloto Privado</h1>
+        <p>Estude com foco e prepare-se para a prova ✈️</p>
+    </div>
+    <div class="card">
+        <button class="btn-materia btn-completo" onclick="iniciarCompleto()">
+            📝 <strong>SIMULADO COMPLETO — 100 Questões</strong>
+        </button>
+        <hr>
+        <button class="btn-materia" onclick="iniciarMateria('teoriaVoo')">📐 Teoria de Voo</button>
+        <button class="btn-materia" onclick="iniciarMateria('conhecimentosTecnicos')">🔧 Conhecimentos Técnicos</button>
+        <button class="btn-materia" onclick="iniciarMateria('navegacaoVisual')">🧭 Navegação Visual</button>
+        <button class="btn-materia" onclick="iniciarMateria('regulamento')">📋 Regulamento de Tráfego Aéreo</button>
+        <button class="btn-materia" onclick="iniciarMateria('meteorologia')">🌤️ Meteorologia</button>
+    </div>
+    <div class="card historico">
+        <h3>📊 Últimos Resultados</h3>
+        <div id="lista-historico"></div>
+    </div>
+</div>
+
+<!-- Tela de Simulado -->
+<div id="simulado" class="tela">
+    <div class="topo">
+        <h2 class="nome-materia" id="titulo-materia"></h2>
+        <span class="contador" id="contador"></span>
+    </div>
+    <div id="area-questao"></div>
+    <div class="botoes">
+        <button class="btn btn-voltar" onclick="voltar()">← Voltar</button>
+        <button class="btn btn-prox oculto" id="btn-prox" onclick="proxima()">Próxima →</button>
+        <button class="btn btn-final oculto" id="btn-fim" onclick="finalizar()">✅ Resultado</button>
+    </div>
+    <div id="resultado" class="resultado oculto"></div>
+</div>
+
+<script>
+const CHAVE_CORRETA = "PPA2026";
+
+function verificarChave() {
+    const digitada = document.getElementById('chave').value.trim();
+    if (digitada === CHAVE_CORRETA) {
+        document.getElementById('tela-acesso').style.display = 'none';
+        ativarTela('inicial');
+        carregarHistorico();
+    } else {
+        document.getElementById('msg-erro').style.display = 'block';
+        document.getElementById('chave').value = '';
+    }
+}
+
+function ativarTela(nome) {
+    document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
+    document.getElementById(nome).classList.add('ativa');
+}
+
+function embaralhar(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+
+function embaralharAlternativas(questao) {
+    const alternativas = questao.o.map((texto, indice) => ({
+        texto, correta: indice === questao.correta
+    }));
+    const embaralhado = embaralhar(alternativas);
+    return {
+        p: questao.p,
+        o: embaralhado.map(a => a.texto),
+        correta: embaralhado.findIndex(a => a.correta)
+    };
+}
+
+// BANCO DE QUESTÕES
+const BANCO = {
+    teoriaVoo: {
+        nome: "📐 Teoria de Voo",
+        questoes: [
+            { p: "De acordo com o princípio de Bernoulli, quando a velocidade do ar aumenta, a pressão estática:", o: ["Aumenta", "Diminui", "Permanece inalterada", "Dobra"], correta: 1 },
+            { p: "As quatro forças principais que atuam numa aeronave em voo nivelado e reto são:", o: ["Sustentação, peso, empuxo e arrasto", "Elevação, massa, potência e resistência", "Pressão, peso, velocidade e arrasto", "Sustentação, massa, impulso e velocidade"], correta: 0 },
+            { p: "A sustentação é gerada principalmente:", o: ["Pela diferença de pressão entre a superfície superior e inferior da asa", "Pela massa do ar que bate na asa", "Pela potência do motor", "Pela inclinação da hélice"], correta: 0 },
+            { p: "Quando o ângulo de ataque ultrapassa o ângulo crítico, ocorre:", o: ["Aumento da sustentação", "Estol", "Redução do arrasto", "Aumento de velocidade"], correta: 1 },
+            { p: "O centro de pressão é o ponto onde:", o: ["O peso da aeronave se concentra", "A resultante da sustentação atua", "O empuxo é aplicado", "O arrasto é máximo"], correta: 1 },
+            { p: "Com o aumento da altitude, a densidade do ar:", o: ["Aumenta", "Diminui", "Permanece igual", "Dobra a cada 1000 pés"], correta: 1 },
+            { p: "O arrasto parasita:", o: ["Aumenta com o quadrado da velocidade", "Diminui com o aumento de velocidade", "Não depende da velocidade", "É igual ao arrasto induzido em voo lento"], correta: 0 },
+            { p: "O arrasto induzido é consequência direta de:", o: ["A sustentação gerada pela asa", "A potência do motor", "O formato da fuselagem", "A velocidade máxima"], correta: 0 },
+            { p: "Na velocidade de máxima autonomia, a relação empuxo/velocidade é:", o: ["Mínima", "Máxima", "Igual a 1", "Nula"], correta: 0 },
+            { p: "O estol pode ocorrer em:", o: ["Velocidade baixa apenas", "Qualquer velocidade e atitude", "Velocidade alta apenas", "Subida apenas"], correta: 1 },
+            { p: "Um aumento no peso da aeronave faz com que a velocidade de estol:", o: ["Aumente", "Diminua", "Não se altere", "Seja igual à velocidade de cruzeiro"], correta: 0 },
+            { p: "A envergadura é a medida:", o: ["Da ponta de uma asa à outra", "Do bordo de ataque ao bordo de fuga", "Do comprimento total da aeronave", "Da altura da cauda"], correta: 0 },
+            { p: "O bordo de fuga é a parte:", o: ["Da asa por onde o ar sai", "Da asa por onde o ar entra", "Mais grossa da asa", "Próxima ao motor"], correta: 0 },
+            { p: "O aumento da temperatura do ar faz com que a densidade:", o: ["Aumente", "Diminua", "Seja constante", "Dobre"], correta: 1 },
+            { p: "Em voo nivelado, se a potência diminui e não se altera a atitude:", o: ["A aeronave desce", "A aeronave sobe", "A velocidade aumenta", "O ângulo de ataque diminui"], correta: 0 },
+            { p: "A sustentação é proporcional:", o: ["À densidade, à área da asa e ao quadrado da velocidade", "Apenas à velocidade e ao peso", "À potência do motor", "Ao comprimento da fuselagem"], correta: 0 },
+            { p: "O equilíbrio longitudinal refere-se:", o: ["À estabilidade em torno do eixo lateral", "À estabilidade em torno do eixo longitudinal", "Ao controle da direção", "Ao movimento de rolamento"], correta: 0 },
+            { p: "O efeito solo faz com que:", o: ["A sustentação aumente e o arrasto diminua", "A sustentação diminua", "O arrasto aumente", "A velocidade de estol aumente"], correta: 0 },
+            { p: "Se o centro de gravidade estiver muito à frente, a aeronave tende a:", o: ["Ser mais estável e exigir mais força no leme de profundidade", "Ser instável", "Subir sozinha", "Estolar com maior facilidade"], correta: 0 },
+            { p: "A velocidade de melhor razão de subida é usada para:", o: ["Ganhar altitude em menor tempo", "Ganhar altitude em menor distância", "Voar com menor consumo", "Voar a máxima velocidade"], correta: 0 }
+        ]
+    },
+    conhecimentosTecnicos: {
+        nome: "🔧 Conhecimentos Técnicos",
+        questoes: [
+            { p: "O motor a pistão de aeronave funciona pelo ciclo:", o: ["Otto", "Diesel", "Brayton", "Rankine"], correta: 0 },
+            { p: "A ignição do motor de avião, em voo, depende:", o: ["De dois magnetos independentes", "Da bateria principal", "Do alternador", "Do sistema elétrico da aeronave"], correta: 0 },
+            { p: "A mistura ar-combustível é dita estequiométrica quando:", o: ["A queima é completa e ideal", "Há excesso de combustível", "Há excesso de ar", "O motor está frio"], correta: 0 },
+            { p: "O carburador tem a função de:", o: ["Misturar ar e combustível na proporção correta", "Bombear combustível para os cilindros", "Filtrar o ar admitido", "Controlar a temperatura do motor"], correta: 0 },
+            { p: "A formação de gelo no carburador pode ocorrer em temperaturas entre:", o: ["-7°C e 21°C", "0°C e -40°C", "25°C e 35°C", "Acima de 30°C"], correta: 0 },
+            { p: "Para eliminar o gelo no carburador, utiliza-se:", o: ["Ar quente do motor", "Água quente", "Anticongelante", "Aumento de potência"], correta: 0 },
+            { p: "O manômetro de pressão de admissão indica:", o: ["A pressão absoluta no coletor", "A quantidade de combustível admitido", "A velocidade do motor", "A temperatura do ar admitido"], correta: 0 },
+            { p: "Com o aumento da altitude, para manter a potência, deve-se:", o: ["Enriquecer a mistura", "Empobrecer a mistura", "Aumentar a rotação", "Diminuir a rotação"], correta: 1 },
+            { p: "O sistema de lubrificação tem como função principal:", o: ["Reduzir o atrito entre as peças", "Resfriar o motor", "Limpar os cilindros", "Aumentar a potência"], correta: 0 },
+            { p: "O movimento da hélice converte a rotação do motor em:", o: ["Empuxo", "Torque", "Arrasto", "Sustentação"], correta: 0 },
+            { p: "O diagrama de carga serve para verificar se:", o: ["O peso e o CG estão dentro dos limites", "A aeronave tem combustível suficiente", "A potência é adequada", "A velocidade está correta"], correta: 0 },
+            { p: "O centro de gravidade é o ponto onde:", o: ["Todo o peso da aeronave parece estar concentrado", "A sustentação atua", "O empuxo se aplica", "O arrasto é máximo"], correta: 0 },
+            { p: "Se o CG estiver fora dos limites dianteiros, a aeronave terá:", o: ["Maior dificuldade para levantar o nariz", "Maior tendência a subir", "Menor estabilidade", "Maior velocidade de estol"], correta: 0 },
+            { p: "O indicador de velocidade aerodinâmica recebe pressão de:", o: ["Pitot e estática", "Apenas estática", "Apenas pitot", "Altímetro"], correta: 0 },
+            { p: "O altímetro indica altitude baseado na pressão:", o: ["Estática", "Dinâmica", "Do pitot", "Diferencial"], correta: 0 },
+            { p: "O indicador de velocidade verdadeira mostra:", o: ["A velocidade real em relação ao ar", "A velocidade medida no solo", "A velocidade indicada corrigida de pressão e temperatura", "A velocidade corrigida de vento"], correta: 2 },
+            { p: "A luz de baixa pressão de óleo acende em voo. Você deve:", o: ["Preparar-se para pouso o mais rápido possível", "Continuar voando até o destino", "Aumentar a potência", "Desligar o motor imediatamente"], correta: 0 },
+            { p: "Os magnetos são testados antes da decolagem para verificar:", o: ["Se cada um opera corretamente e a queda de rotação está dentro do limite", "Se a bateria está carregada", "Se o alternador funciona", "Se há combustível suficiente"], correta: 0 },
+            { p: "O tanque de combustível deve ter ventilação para:", o: ["Permitir a saída e entrada de ar conforme o consumo", "Evitar que o combustível evapore", "Manter o combustível frio", "Aumentar a capacidade"], correta: 0 },
+            { p: "A bomba de combustível auxiliar é usada principalmente:", o: ["Na partida e em emergência", "Durante o cruzeiro", "No pouso", "No voo de cruzeiro longo"], correta: 0 }
+        ]
+    },
+    navegacaoVisual: {
+        nome: "🧭 Navegação Visual",
+        questoes: [
+            { p: "A linha que une pontos de mesma declinação magnética é chamada de:", o: ["Isógona", "Isóbara", "Isoterma", "Isolinha"], correta: 0 },
+            { p: "A declinação magnética é a diferença entre:", o: ["Norte verdadeiro e norte magnético", "Norte magnético e norte da carta", "Norte verdadeiro e norte da carta", "Leste e Oeste"], correta: 0 },
+            { p: "O rumo verdadeiro é obtido corrigindo o rumo magnético da:", o: ["Declinação", "Deriva", "Velocidade", "Vento"], correta: 0 },
+            { p: "A deriva é causada principalmente por:", o: ["Vento cruzado", "Velocidade baixa", "Mau tempo", "Erro de pilotagem"], correta: 0 },
+            { p: "A velocidade verdadeira é:", o: ["A velocidade da aeronave em relação ao ar", "A velocidade em relação ao solo", "A velocidade indicada corrigida de temperatura e pressão", "A velocidade medida no GPS"], correta: 2 },
+            { p: "A velocidade no solo é obtida considerando a velocidade verdadeira e:", o: ["O vento", "A temperatura", "A altitude", "A declinação"], correta: 0 },
+            { p: "No triângulo de velocidades, o vetor que representa o vento vai de:", o: ["A ponta da velocidade verdadeira à ponta da velocidade no solo", "A origem à ponta da velocidade verdadeira", "A origem à ponta da velocidade no solo", "O rumo à proa"], correta: 0 },
+            { p: "A escala de uma carta é 1:500.000. Isso significa que:", o: ["1 cm na carta = 5 km no terreno", "1 km na carta = 5 cm no terreno", "1 cm na carta = 500 m no terreno", "1 metro na carta = 500 metros"], correta: 0 },
+            { p: "A proa é a direção para onde o nariz da aeronave aponta, medida em relação ao:", o: ["Norte magnético ou verdadeiro", "Vento", "Solo", "Destino"], correta: 0 },
+            { p: "O rumo é a direção do caminho sobre o solo, medido em relação ao:", o: ["Norte verdadeiro", "Norte magnético", "Vento", "Pista"], correta: 0 },
+            { p: "Para calcular o tempo de voo, divide-se a distância pela:", o: ["Velocidade no solo", "Velocidade verdadeira", "Velocidade indicada", "Velocidade média"], correta: 0 },
+            { p: "Se a distância é de 120 km e a velocidade no solo é de 90 km/h, o tempo de voo é de aproximadamente:", o: ["1h 20min", "1h 10min", "1h 30min", "45min"], correta: 0 },
+            { p: "A linha de posição obtida por referência visual é:", o: ["Uma reta que passa pelo ponto de referência", "Um círculo", "Uma curva de igual distância", "Um ponto exato"], correta: 0 },
+            { p: "A estimativa de posição é baseada em:", o: ["Rumo, velocidade e tempo", "Apenas pontos de referência", "GPS", "Radiogoniómetro"], correta: 0 },
+            { p: "A posição fixa é obtida por:", o: ["Interseção de duas ou mais linhas de posição", "Estimativa", "Apenas um ponto de referência", "Tempo e velocidade"], correta: 0 },
+            { p: "A carta aeronáutica usada para navegação visual no Brasil é a:", o: ["Carta de Rotas", "Carta Topográfica", "Carta Náutica", "Carta Geológica"], correta: 0 },
+            { p: "Os limites de espaço aéreo controlado aparecem na carta com cor:", o: ["Azul", "Vermelha", "Verde", "Amarela"], correta: 0 },
+            { p: "A altitude de transição é a altitude abaixo da qual se usa:", o: ["QFE", "QNH", "1013 hPa", "Pressão padrão"], correta: 1 },
+            { p: "O QNH indica a pressão:", o: ["Ao nível do mar", "Na pista", "Na altitude da aeronave", "No ponto de ajuste"], correta: 0 },
+            { p: "Se o vento sopra da direita, a deriva será para:", o: ["A esquerda", "A direita", "Frente", "Atrás"], correta: 0 }
+        ]
+    },
+    regulamento: {
+        nome: "📋 Regulamento de Tráfego Aéreo",
+        questoes: [
+            { p: "O regulamento que disciplina o tráfego aéreo no Brasil é o:", o: ["RBAC 91", "RBAC 61", "RBAC 141", "RBAC 135"], correta: 0 },
+            { p: "As regras de voo visual aplicam-se quando:", o: ["A visibilidade e distância das nuvens estão dentro dos limites VFR", "O piloto prefere", "A noite apenas", "Com instrumentos apenas"], correta: 0 },
+            { p: "Em voo VFR diurno, a visibilidade mínima exigida na classe G é de:", o: ["5 km", "3 km", "8 km", "10 km"], correta: 0 },
+            { p: "A aeronave que tem direito de passagem é aquela:", o: ["Em situação de emergência", "Maior", "Mais rápida", "Com mais passageiros"], correta: 0 },
+            { p: "Quando duas aeronaves se aproximam de frente, cada uma deve:", o: ["Desviar para a direita", "Desviar para a esquerda", "Manter rumo", "Subir"], correta: 0 },
+            { p: "Em aproximação para pouso, a aeronave que vem de:", o: ["A direita tem prioridade", "A esquerda tem prioridade", "Trás tem prioridade", "Frente tem prioridade"], correta: 0 },
+            { p: "O circuito de tráfego padrão é feito em:", o: ["Sentido anti-horário", "Sentido horário", "Qualquer sentido", "De acordo com o vento"], correta: 0 },
+            { p: "A perna do vento é percorrida:", o: ["Paralela à pista, na direção oposta à de pouso", "Na direção do pouso", "Perpendicular à pista", "Afastando-se da pista"], correta: 0 },
+            { p: "A perna de base é percorrida:", o: ["Perpendicular à pista, antes do alinhamento final", "Paralela à pista", "Na direção oposta", "Sobre a pista"], correta: 0 },
+            { p: "A luz verde piscando no aeródromo significa:", o: ["Pode pousar", "Pouso proibido", "Ceda passagem", "Aterrisse e siga"], correta: 0 },
+            { p: "A luz vermelha fixa significa:", o: ["Pare imediatamente", "Pode seguir com cuidado", "Pouso permitido", "Desligue os motores"], correta: 0 },
+            { p: "Para voo VFR noturno, a visibilidade mínima é de:", o: ["5 km", "3 km", "8 km", "10 km"], correta: 0 },
+            { p: "O plano de voo deve ser apresentado quando:", o: ["Exigido pelo serviço ATS ou voo fora da área de controle", "Sempre", "Apenas à noite", "Apenas em aeronaves grandes"], correta: 0 },
+            { p: "A altitude mínima de segurança em área montanhosa é de:", o: ["2000 pés acima do obstáculo mais próximo num raio de 8 km", "1000 pés acima do solo", "500 pés acima do solo", "3000 pés"], correta: 0 },
+            { p: "Sobre cidade ou aglomeração, a altitude mínima é de:", o: ["1000 pés acima do obstáculo mais alto num raio de 600 m", "500 pés acima do solo", "2000 pés", "Conforme o vento"], correta: 0 },
+            { p: "O piloto deve manter escuta no canal de emergência que é:", o: ["121,5 MHz", "118,0 MHz", "130,0 MHz", "108,0 MHz"], correta: 0 },
+            { p: "A licença de Piloto Privado habilita seu titular a:", o: ["Voar sem remuneração, sem transporte de passageiros por pagamento", "Voar com remuneração", "Transportar passageiros comercialmente", "Voar em linha aérea"], correta: 0 },
+            { p: "A validade do certificado de habilitação técnica para PPA é de:", o: ["24 meses", "12 meses", "6 meses", "36 meses"], correta: 0 },
+            { p: "O uso de cinto de segurança é obrigatório:", o: ["Durante todo o voo, quando nos assentos", "Apenas na decolagem e pouso", "Apenas em turbulência", "Não é obrigatório"], correta: 0 },
+            { p: "Em caso de perda de comunicações, o piloto deve:", o: ["Prosseguir e pousar no destino se possível, observando sinais visuais", "Voltar imediatamente", "Pousar no primeiro aeródromo", "Subir acima de 3000 pés"], correta: 0 }
+        ]
+    },
+    meteorologia: {
+        nome: "🌤️ Meteorologia",
+        questoes: [
+            { p: "O elemento que mais influencia a densidade do ar é:", o: ["Temperatura", "Umidade", "Vento", "Nuvens"], correta: 0 },
+            { p: "A pressão atmosférica diminui com a altitude porque:", o: ["Há menos ar acima", "O ar fica mais quente", "A gravidade diminui", "O vento é mais forte"], correta: 0 },
+            { p: "A atmosfera é dividida em camadas. A camada mais próxima da superfície é a:", o: ["Troposfera", "Estratosfera", "Mesosfera", "Termosfera"], correta: 0 },
+            { p: "Na troposfera, a temperatura geralmente:", o: ["Diminui com a altitude", "Aumenta com a altitude", "Permanece constante", "Varia aleatoriamente"], correta: 0 },
+            { p: "A taxa padrão de variação de temperatura é de:", o: ["-2°C por 1000 pés", "-1°C por 1000 pés", "+2°C por 1000 pés", "-3°C por 1000 pés"], correta: 0 },
+            { p: "As nuvens baixas têm base até:", o: ["2000 pés AGL", "5000 pés AGL", "6500 pés AGL", "10000 pés AGL"], correta: 0 },
+            { p: "Nuvens que apresentam desenvolvimento vertical acentuado e risco de granizo são:", o: ["Cumulonimbus", "Estratus", "Cirrus", "Altocumulus"], correta: 0 },
+            { p: "Nuvens estratiformes são formadas por:", o: ["Resfriamento de ar por expansão suave", "Aquecimento intenso do solo", "Correntes ascendentes fortes", "Convergência de ventos"], correta: 0 },
+            { p: "O vento é o movimento do ar causado principalmente por:", o: ["Diferença de pressão", "Rotação da Terra", "Umidade do ar", "Calor do Sol"], correta: 0 },
+            { p: "Quanto maior a diferença de pressão entre dois pontos:", o: ["Mais forte o vento", "Mais fraco o vento", "Mais quente o ar", "Mais úmido o ar"], correta: 0 },
+            { p: "A brisa marítima ocorre:", o: ["Durante o dia, com vento do mar para terra", "À noite, do mar para terra", "Durante o dia, da terra para o mar", "Sempre à noite"], correta: 0 },
+            { p: "A brisa terrestre ocorre:", o: ["À noite, vento da terra para o mar", "De dia, do mar para terra", "De dia, da terra para o mar", "À noite, do mar para terra"], correta: 0 },
+            { p: "A temperatura do ponto de orvalho é a temperatura na qual:", o: ["O ar fica saturado de vapor de água", "A água ferve", "O gelo derrete", "A chuva começa"], correta: 0 },
+            { p: "Se a temperatura e o ponto de orvalho estiverem próximos, é provável:", o: ["Formação de neblina ou nuvens baixas", "Vento forte", "Céu limpo", "Calor intenso"], correta: 0 },
+            { p: "Frente fria é a região onde:", o: ["Ar frio avança sobre ar quente", "Ar quente avança sobre ar frio", "Ar frio recua", "Ar estaciona"], correta: 0 },
+            { p: "A passagem de frente fria costuma trazer:", o: ["Tempo instável, pancadas de chuva e tempestades", "Tempo estável e neblina", "Céu limpo", "Vento calmo"], correta: 0 },
+            { p: "Frente quente é onde:", o: ["Ar quente avança sobre ar frio", "Ar frio avança sobre ar quente", "Ar seco avança", "O vento diminui"], correta: 0 },
+            { p: "A passagem de frente quente costuma trazer:", o: ["Nuvens estratiformes, chuva contínua", "Cumulonimbus e granizo", "Céu sem nuvens", "Vento forte e rajadas"], correta: 0 },
+            { p: "Turbulência em ar claro é causada principalmente por:", o: ["Cisalhamento do vento em altitude", "Aquecimento do solo", "Nuvens baixas", "Chuva leve"], correta: 0 },
+            { p: "Ao aproximar-se de um cumulonimbus, o piloto deve:", o: ["Evitar por uma distância segura", "Atravessar por baixo", "Atravessar por cima", "Voar dentro para treinar"], correta: 0 }
+        ]
+    }
+};
+
+let estado = { lista: [], indice: 0, acertos: 0, bloqueado: false };
+
+function pegar20Embaralhadas(chave) {
+    const selecionadas = embaralhar(BANCO[chave].questoes).slice(0, 20);
+    return selecionadas.map(q => embaralharAlternativas(q));
+}
+
+function iniciarCompleto() {
+    let tudo = [];
+    for (const k in BANCO) {
+        const selecionadas = embaralhar(BANCO[k].questoes).slice(0, 20);
+        tudo = tudo.concat(selecionadas.map(q => embaralharAlternativas(q)));
+    }
+    estado.lista = embaralhar(tudo);
+    estado.indice = 0; estado.acertos = 0; estado.bloqueado = false;
+    document.getElementById('titulo-materia').textContent = '✈️ SIMULADO COMPLETO — 100 Questões';
+    ativarTela('simulado');
+    mostrarQuestao();
+}
+
+function iniciarMateria(chave) {
+    estado.lista = pegar20Embaralhadas(chave);
+    estado.indice = 0; estado.acertos = 0; estado.bloqueado = false;
+    document.getElementById('titulo-materia').textContent = BANCO[chave].nome;
+    ativarTela('simulado');
+    mostrarQuestao();
+}
+
+function mostrarQuestao() {
+    const q = estado.lista[estado.indice];
+    document.getElementById('contador').textContent = `${estado.indice + 1}/${estado.lista.length}`;
+    document.getElementById('resultado').classList.add('oculto');
+    document.getElementById('btn-prox').classList.add('oculto');
+    document.getElementById('btn-fim').classList.add('oculto');
+
+    document.getElementById('area-questao').innerHTML = `
+        <div class="questao">
+            <p class="pergunta">${estado.indice + 1}. ${q.p}</p>
+            <div class="opcao" id="opt0" onclick="clicar(0)">A) ${q.o[0]}</div>
+            <div class="opcao" id="opt1" onclick="clicar(1)">B) ${q.o[1]}</div>
+            <div class="opcao" id="opt2" onclick="clicar(2)">C) ${q.o[2]}</div>
+            <div class="opcao" id="opt3" onclick="clicar(3)">D) ${q.o[3]}</div>
+        </div>
+    `;
+    estado.bloqueado = false;
+}
+
+function clicar(escolha) {
+    if (estado.bloqueado) return;
+    estado.bloqueado = true;
+    const q = estado.lista[estado.indice];
+
+    for (let i = 0; i < 4; i++) {
+        const el = document.getElementById('opt' + i);
+        el.classList.add('bloqueada');
+        if (i === q.correta) el.classList.add('correta');
+        else if (i === escolha) el.classList.add('errada');
+    }
+    if (escolha === q.correta) estado.acertos++;
+
+    if (estado.indice < estado.lista.length - 1) {
+        document.getElementById('btn-prox').classList.remove('oculto');
+    } else {
+        document.getElementById('btn-fim').classList.remove('oculto');
+    }
+}
+
+function proxima() { estado.indice++; mostrarQuestao(); }
+
+function finalizar() {
+    const porcento = Math.round((estado.acertos / estado.lista.length) * 100);
+    const aprov = porcento >= 70;
+    salvarResultado(porcento, aprov);
+
+    document.getElementById('area-questao').innerHTML = '';
+    document.getElementById('btn-prox').classList.add('oculto');
+    document.getElementById('btn-fim').classList.add('oculto');
+
+    const res = document.getElementById('resultado');
+    res.className = `resultado ${aprov ? 'aprovado' : 'reprovado'}`;
+    res.innerHTML = `
+        ${aprov ? '✅ APROVADO!' : '❌ REPROVADO'}<br><br>
+        Acertos: ${estado.acertos} de ${estado.lista.length}<br>
+        Porcentagem: ${porcento}%<br>
+        Nota de corte: 70%
+    `;
+    res.classList.remove('oculto');
+}
+
+function voltar() { ativarTela('inicial'); carregarHistorico(); }
+
+function salvarResultado(porc, aprov) {
+    let hist = JSON.parse(localStorage.getItem('simulador_anac_hist') || '[]');
+    hist.unshift({ data: new Date().toLocaleDateString('pt-BR'), porcentagem: porc, aprovado: aprov });
+    hist = hist.slice(0, 5);
+    localStorage.setItem('simulador_anac_hist', JSON.stringify(hist));
+}
+
+function carregarHistorico() {
+    const hist = JSON.parse(localStorage.getItem('simulador_anac_hist') || '[]');
+    const lista = document.getElementById('lista-historico');
+    if (hist.length === 0) {
+        lista.innerHTML = '<p style="color:#888; text-align:center; padding:10px;">Nenhum resultado ainda.</p>';
+        return;
+    }
+    lista.innerHTML = hist.map(h => `
+        <div class="item-hist">
+            <span>${h.data}</span>
+            <span style="font-weight:bold; font-size:17px;">${h.porcentagem}% ${h.aprovado ? '✅' : '❌'}</span>
+        </div>
+    `).join('');
+}
+</script>
+</body>
+</html>
