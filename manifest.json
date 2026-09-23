@@ -1,20 +1,20 @@
 {
-  "name": "Simulador ANAC — Piloto Privado",
+  "name": "Simulador PPA",
   "short_name": "Simulador PPA",
   "description": "Simulador de estudo para prova de Piloto Privado ANAC",
-  "start_url": "./index.html",
+  "start_url": "/simulador-anac-ppa/",
   "display": "standalone",
-  "background_color": "#eaf2f8",
+  "background_color": "#003366",
   "theme_color": "#003366",
   "icons": [
     {
-      "src": "aviao-icone.png",
+      "src": "https://picsum.photos/id/325/192/192",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "aviao-icone.png",
+      "src": "https://picsum.photos/id/325/512/512",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
