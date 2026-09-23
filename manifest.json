@@ -10,23 +10,10 @@
   "theme_color": "#0066cc",
   "icons": [
     {
-      "src": "https://picsum.photos/id/325/192/192.png",
-      "sizes": "192x192",
+      "src": "aviao-icone.png",
+      "sizes": "any",
       "type": "image/png",
       "purpose": "any maskable"
-    },
-    {
-      "src": "https://picsum.photos/id/325/512/512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "https://picsum.photos/id/325/1080/1920.png",
-      "sizes": "1080x1920",
-      "type": "image/png"
     }
   ]
 }
