@@ -1,7 +1,7 @@
 {
   "name": "Simulador ANAC — Piloto Privado",
   "short_name": "Simulador PPA",
-  "description": "Simulador de estudo para prova de Piloto Privado da ANAC: 5 matérias, 100 questões com correção visual verde e vermelha.",
+  "description": "Simulador de estudo para prova de Piloto Privado da ANAC: 5 matérias com 20 questões cada, correção visual verde e vermelha, histórico de resultados.",
   "start_url": "/simulador-anac-ppa/",
   "display": "standalone",
   "background_color": "#003366",
