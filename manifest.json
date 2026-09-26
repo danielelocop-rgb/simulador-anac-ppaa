@@ -2,12 +2,14 @@
   "name": "Simulado PP — Piloto Privado",
   "short_name": "Simulado PP",
   "description": "Simulador de questões para Piloto Privado",
+  "id": "./",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#eaf2f8",
   "theme_color": "#003366",
   "orientation": "portrait-primary",
+  "categories": ["education", "reference"],
   "icons": [
     {
       "src": "icon-192.png",
