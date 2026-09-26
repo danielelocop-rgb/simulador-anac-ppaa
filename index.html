@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#003366">
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="icon-192.png">
-    <title>Simulado PP — Piloto Privado</title>
+    <title>Simulador ANAC — Piloto Privado</title>
     <style>
         * { margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Arial, sans-serif; box-sizing: border-box; }
         :root {
@@ -35,7 +33,7 @@
             box-shadow: var(--sombra);
         }
         .btn-materia {
-            display: flex; align-items: center; gap: 12px; width: 100%;
+            display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
             padding: 16px 20px; margin: 8px 0;
             background: linear-gradient(90deg, #0066cc, #0077ed);
             color: white; border: none; border-radius: 12px;
@@ -45,6 +43,7 @@
         .btn-materia:hover { transform: translateY(-2px); }
         .btn-completo { background: linear-gradient(90deg, var(--azul-escuro), #004d99); font-size: 17px; padding: 18px; }
         hr { border: none; border-top: 1px solid #e8eef3; margin: 16px 0; }
+        .qtd { font-size: 13px; opacity: 0.8; background: rgba(0,0,0,0.15); padding: 2px 8px; border-radius: 10px; }
 
         .topo {
             display: flex; justify-content: space-between; align-items: center;
@@ -61,13 +60,13 @@
             box-shadow: var(--sombra);
         }
         .pergunta {
-            font-size: 18px; font-weight: 600; color: var(--azul-escuro);
-            margin-bottom: 22px; line-height: 1.6;
+            font-size: 19px; font-weight: 600; color: var(--azul-escuro);
+            margin-bottom: 26px; line-height: 1.6;
         }
         .opcao {
-            padding: 14px 18px; margin: 8px 0;
+            padding: 16px 20px; margin: 10px 0;
             background: var(--azul-claro); border-left: 4px solid transparent;
-            border-radius: 10px; font-size: 15px; cursor: pointer;
+            border-radius: 10px; font-size: 16px; cursor: pointer;
             transition: all 0.25s;
         }
         .opcao:hover:not(.bloqueada) { background: #d4e4f4; transform: translateX(4px); }
@@ -107,26 +106,43 @@
             padding: 10px 0; border-bottom: 1px solid #eee;
             display: flex; justify-content: space-between; align-items: center;
         }
+        .uso-banco { font-size: 13px; color: #666; margin-top: 8px; }
     </style>
 </head>
 <body>
 
-<!-- TELA INICIAL -->
 <div id="inicial" class="tela ativa">
     <div class="cabecalho">
-        <h1>✈️ Simulado PP — Piloto Privado</h1>
-        <p>Banco: <strong>100 Questões</strong> • Sem repetição no mesmo teste</p>
+        <h1>✈️ Simulador ANAC — Piloto Privado</h1>
+        <p>Banco com 1.520 questões • 20 por simulado • Sem repetição</p>
     </div>
     <div class="card">
         <button class="btn-materia btn-completo" onclick="iniciarCompleto()">
             📝 <strong>SIMULADO COMPLETO — 100 Questões</strong>
+            <span class="qtd">5 matérias</span>
         </button>
         <hr>
-        <button class="btn-materia" onclick="iniciarMateria('teoriaVoo')">✈️ Teoria de Voo <small>20</small></button>
-        <button class="btn-materia" onclick="iniciarMateria('conhecimentosTecnicos')">🔧 Conhecimentos Técnicos <small>20</small></button>
-        <button class="btn-materia" onclick="iniciarMateria('navegacaoVisual')">🧭 Navegação Aérea Visual <small>20</small></button>
-        <button class="btn-materia" onclick="iniciarMateria('regulamento')">📋 Regulamento de Tráfego Aéreo <small>20</small></button>
-        <button class="btn-materia" onclick="iniciarMateria('meteorologia')">🌤️ Meteorologia <small>20</small></button>
+        <button class="btn-materia" onclick="iniciarMateria('teoriaVoo')">
+            ✈️ Teoria de Voo
+            <span class="qtd" id="qtd-tv">304</span>
+        </button>
+        <button class="btn-materia" onclick="iniciarMateria('conhecimentosTecnicos')">
+            🔧 Conhecimentos Técnicos
+            <span class="qtd" id="qtd-ct">304</span>
+        </button>
+        <button class="btn-materia" onclick="iniciarMateria('navegacaoVisual')">
+            🧭 Navegação Aérea Visual
+            <span class="qtd" id="qtd-nv">304</span>
+        </button>
+        <button class="btn-materia" onclick="iniciarMateria('regulamento')">
+            📋 Regulamento de Tráfego Aéreo
+            <span class="qtd" id="qtd-rg">304</span>
+        </button>
+        <button class="btn-materia" onclick="iniciarMateria('meteorologia')">
+            🌤️ Meteorologia
+            <span class="qtd" id="qtd-mt">304</span>
+        </button>
+        <p class="uso-banco">Questões usadas não se repetem até esgotar o banco.</p>
     </div>
     <div class="card historico">
         <h3>📊 Últimos Resultados</h3>
@@ -134,7 +150,6 @@
     </div>
 </div>
 
-<!-- TELA DE SIMULADO -->
 <div id="simulado" class="tela">
     <div class="topo">
         <h2 class="nome-materia" id="titulo-materia"></h2>
@@ -150,14 +165,7 @@
 </div>
 
 <script>
-// ==================================================
-// FUNÇÕES BASE
-// ==================================================
-function ativarTela(nome) {
-    document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
-    document.getElementById(nome).classList.add('ativa');
-}
-
+// Embaralhar array
 function embaralhar(arr) {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) {
@@ -167,6 +175,7 @@ function embaralhar(arr) {
     return a;
 }
 
+// Embaralhar alternativas
 function embaralharAlternativas(q) {
     const alternativas = q.o.map((texto, i) => ({ texto, correta: i === q.correta }));
     const embaralhadas = embaralhar(alternativas);
@@ -181,274 +190,202 @@ let simuladoAtual = [];
 let indiceAtual = 0;
 let acertos = 0;
 let respondida = false;
-let tipoSimulado = '';
+let materiaAtual = null;
+let ehCompleto = false;
+let questoesCompleto = [];
 
-// ==================================================
-// BANCO DE QUESTÕES — 20 por matéria = 100 TOTAL
-// ==================================================
-const BANCO = {
-    teoriaVoo: {
-        nome: "✈️ Teoria de Voo",
-        questoes: [
-            { p: "Qual princípio explica a sustentação pela diferença de velocidade do ar?", o: ["Lei de Newton", "Princípio de Bernoulli", "Lei de Ohm", "Lei de Boyle"], correta: 1 },
-            { p: "As quatro forças em voo reto e nivelado são:", o: ["Sustentação, peso, empuxo e arrasto", "Elevação, massa, potência e resistência", "Pressão, peso, velocidade e atrito", "Empuxo, massa, aceleração e arrasto"], correta: 0 },
-            { p: "Ao ultrapassar o ângulo de ataque crítico, ocorre:", o: ["Aumento de sustentação", "Estol", "Redução de arrasto", "Aumento de velocidade"], correta: 1 },
-            { p: "Com o aumento da altitude, a densidade do ar:", o: ["Aumenta", "Diminui", "Permanece igual", "Dobra a cada 1.000 m"], correta: 1 },
-            { p: "O ângulo de ataque é entre:", o: ["Linha da asa e vento relativo", "Eixo longitudinal e horizonte", "Corda e eixo transversal", "Proa e vento"], correta: 0 },
-            { p: "O controle de rolagem é feito pelos:", o: ["Ailerons", "Flapes", "Elevadores", "Lemes"], correta: 0 },
-            { p: "O movimento de arfagem é comandado pelo:", o: ["Leme de direção", "Leme de profundidade", "Aileron esquerdo", "Flap"], correta: 1 },
-            { p: "O efeito solo faz com que:", o: ["Sustentação aumente e arrasto induzido diminua", "Sustentação diminua", "Velocidade de estol aumente", "Ângulo de ataque diminua"], correta: 0 },
-            { p: "Com flapes estendidos, a velocidade de estol:", o: ["Aumenta", "Diminui", "Não se altera", "Duplica"], correta: 1 },
-            { p: "O centro de pressão é onde:", o: ["O peso se concentra", "A resultante da sustentação atua", "O arrasto é máximo", "A pressão é zero"], correta: 1 },
-            { p: "Se a velocidade dobra, a sustentação:", o: ["Dobra", "Quadruplica", "Triplica", "Não se altera"], correta: 1 },
-            { p: "O arrasto induzido é maior em:", o: ["Baixa velocidade e alto ângulo de ataque", "Alta velocidade", "Voo nivelado rápido", "Descida com motor desligado"], correta: 0 },
-            { p: "Para sair de um estol:", o: ["Aumentar potência apenas", "Diminuir o ângulo de ataque", "Acionar flapes", "Inclinar a aeronave"], correta: 1 },
-            { p: "Em curva nivelada, para manter altitude:", o: ["Sustentação deve aumentar", "Sustentação deve diminuir", "Empuxo deve diminuir", "Arrasto deve aumentar"], correta: 0 },
-            { p: "Velocidade de melhor razão de subida dá:", o: ["Ganho de altitude em menor tempo", "Ganho de altitude em menor distância", "Maior autonomia", "Menor consumo"], correta: 0 },
-            { p: "CG muito à frente causa:", o: ["Maior estabilidade e dificuldade em levantar o nariz", "Menor estabilidade", "Estol brusco", "Rolamento involuntário"], correta: 0 },
-            { p: "A sustentação atua sempre:", o: ["Paralela ao vento relativo", "Perpendicular ao vento relativo", "Perpendicular ao solo", "Na direção do empuxo"], correta: 1 },
-            { p: "Movimento de guinada é em torno do eixo:", o: ["Longitudinal", "Transversal", "Vertical", "Longitudinal e transversal"], correta: 2 },
-            { p: "Envergadura é a medida:", o: ["Da raiz à ponta de uma asa", "De ponta a ponta das asas", "Do bordo de ataque ao de fuga", "Do comprimento total"], correta: 1 },
-            { p: "O arrasto parasita aumenta com:", o: ["O quadrado da velocidade", "A metade da velocidade", "A raiz quadrada", "Linearmente"], correta: 0 }
-        ]
-    },
-    conhecimentosTecnicos: {
-        nome: "🔧 Conhecimentos Técnicos",
-        questoes: [
-            { p: "O motor de avião funciona pelo princípio de:", o: ["Admissão, compressão, explosão e exaustão", "Injeção, compressão, ignição e descarga", "Filtragem, mistura, combustão e saída", "Aquecimento, expansão, resfriamento e retorno"], correta: 0 },
-            { p: "O carburador tem a função de:", o: ["Filtrar o combustível", "Misturar ar e combustível", "Bombear combustível", "Resfriar o motor"], correta: 1 },
-            { p: "Gelo no carburador provoca:", o: ["Aumento de potência", "Queda de rotação e perda de potência", "Aumento de rotação", "Superaquecimento"], correta: 1 },
-            { p: "Para remover gelo no carburador usa-se:", o: ["Aquecimento do carburador", "Aumentar velocidade", "Desligar motor", "Fechar abastecimento"], correta: 0 },
-            { p: "O sistema de ignição é composto principalmente por:", o: ["Bateria, alternador e luzes", "Magnetos, velas e fios", "Bomba, filtro e tubos", "Radiador, válvulas e mangueiras"], correta: 1 },
-            { p: "Falha de um magneto em voo causa:", o: ["Parada imediata do motor", "Queda de rotação e funcionamento irregular", "Aumento de rotação", "Nenhuma alteração"], correta: 1 },
-            { p: "A mistura ar-combustível é empobrecida quando:", o: ["Diminui a quantidade de combustível em relação ao ar", "Aumenta a quantidade de combustível", "O ar fica mais úmido", "A temperatura diminui"], correta: 0 },
-            { p: "Com o aumento de altitude, a mistura deve ser:", o: ["Enriquecida", "Empobrecida", "Mantida igual", "Desligada"], correta: 1 },
-            { p: "O combustível utilizado em aviões de pequeno porte é:", o: ["Gasolina automotiva", "AVGAS", "Diesel", "Querosene"], correta: 1 },
-            { p: "A cor do combustível AVGAS 100LL é:", o: ["Vermelha", "Azul", "Amarela", "Verde"], correta: 1 },
-            { p: "A pressão de óleo muito baixa indica:", o: ["Nível muito alto", "Falta de lubrificação", "Óleo muito frio", "Motor muito novo"], correta: 1 },
-            { p: "A temperatura excessiva do motor pode ser causada por:", o: ["Mistura muito rica", "Mistura muito pobre", "Óleo em excesso", "Rotação muito baixa"], correta: 1 },
-            { p: "O sistema de lubrificação tem a função de:", o: ["Resfriar apenas", "Limpar apenas", "Lubrificar, resfriar e vedar", "Aumentar atrito"], correta: 2 },
-            { p: "A hélice converte a potência do motor em:", o: ["Empuxo", "Arrasto", "Sustentação", "Peso"], correta: 0 },
-            { p: "O passo da hélice refere-se a:", o: ["Rotação por minuto", "Ângulo de inclinação das pás", "Diâmetro total", "Material de fabricação"], correta: 1 },
-            { p: "Passo pequeno da hélice é usado em:", o: ["Cruzeiro", "Decolagem e subida", "Descida", "Pouso apenas"], correta: 1 },
-            { p: "Passo grande da hélice proporciona:", o: ["Maior empuxo em baixa velocidade", "Maior eficiência em voo de cruzeiro", "Menor autonomia", "Mais arrasto"], correta: 1 },
-            { p: "Os flapes são dispositivos que:", o: ["Aumentam sustentação e arrasto", "Diminuem sustentação e arrasto", "Aumentam velocidade", "Melhoram estabilidade direcional"], correta: 0 },
-            { p: "Com os flapes abaixados, a velocidade de estol:", o: ["Aumenta", "Diminui", "Não se altera", "Depende do vento"], correta: 1 },
-            { p: "O trem de pouso recolhido em voo:", o: ["Aumenta o arrasto", "Diminui o arrasto", "Aumenta o peso", "Melhora a estabilidade"], correta: 1 }
-        ]
-    },
-    navegacaoVisual: {
-        nome: "🧭 Navegação Aérea Visual",
-        questoes: [
-            { p: "A navegação visual baseia-se em:", o: ["Equipamentos eletrônicos", "Reconhecimento de pontos no solo", "Sinais de rádio", "Sinais de satélite"], correta: 1 },
-            { p: "A carta aeronáutica usada para navegação visual é:", o: ["Carta de Rotas", "Carta Visual (VFR)", "Carta de Navegação Aérea", "Carta Topográfica"], correta: 1 },
-            { p: "A linha que une o ponto de partida ao de destino chama-se:", o: ["Rumo", "Proa", "Linha de posição", "Derrota"], correta: 3 },
-            { p: "O ângulo entre a derrota e o Norte Verdadeiro é:", o: ["Rumo Verdadeiro", "Proa Verdadeira", "Rumo Magnético", "Declinação"], correta: 0 },
-            { p: "A diferença entre Norte Verdadeiro e Norte Magnético é:", o: ["Variação", "Declinação magnética", "Desvio", "Corrente"], correta: 1 },
-            { p: "O desvio é causado por:", o: ["Posição do Sol", "Campos magnéticos da própria aeronave", "Vento", "Relevo do solo"], correta: 1 },
-            { p: "A velocidade verdadeira é:", o: ["Velocidade indicada corrigida de densidade", "Velocidade sobre o solo", "Velocidade relativa ao vento", "Velocidade indicada"], correta: 0 },
-            { p: "A velocidade sobre o solo é obtida pela:", o: ["Velocidade verdadeira ± componente do vento", "Velocidade indicada + temperatura", "Velocidade média de cruzeiro", "Velocidade de decolagem"], correta: 0 },
-            { p: "O vento de proa reduz:", o: ["Tempo de voo", "Velocidade sobre o solo", "Consumo de combustível", "Altitude"], correta: 1 },
-            { p: "O vento de cauda aumenta:", o: ["Tempo de voo", "Velocidade sobre o solo", "Consumo de combustível", "Potência"], correta: 1 },
-            { p: "A deriva ocorre devido ao:", o: ["Peso da aeronave", "Vento transversal", "Velocidade", "Altitude"], correta: 1 },
-            { p: "Para corrigir a deriva, o piloto deve:", o: ["Manter proa igual ao rumo", "Apontar a proa para o lado de onde vem o vento", "Apontar para o lado para onde vai o vento", "Aumentar velocidade"], correta: 1 },
-            { p: "A margem de combustível para voo VFR diurno é:", o: ["30 minutos de voo", "45 minutos de voo", "1 hora de voo", "1h30 de voo"], correta: 1 },
-            { p: "A margem de combustível para voo VFR noturno é:", o: ["30 minutos", "45 minutos", "1 hora", "1h30"], correta: 2 },
-            { p: "O código de transponder 7700 indica:", o: ["Emergência", "Voo perdido", "Problema de rádio", "Aterragem forçada"], correta: 0 },
-            { p: "O código de transponder 7600 indica:", o: ["Emergência", "Falha de comunicações", "Interferência ilícita", "Trabalho aéreo"], correta: 1 },
-            { p: "O código de transponder 7500 indica:", o: ["Emergência", "Falha de comunicações", "Interferência ilícita", "Aterragem forçada"], correta: 2 },
-            { p: "A frequência de emergência internacional é:", o: ["118,0 MHz", "121,5 MHz", "243,0 MHz", "108,0 MHz"], correta: 1 },
-            { p: "A pista 27 significa que sua proa é aproximadamente:", o: ["027°", "270°", "27°", "333°"], correta: 1 },
-            { p: "Ao perder a orientação, a primeira ação é:", o: ["Descer o mais rápido possível", "Manter a calma, verificar posição e pontos de referência", "Pedir ajuda imediatamente", "Subir mais alto"], correta: 1 }
-        ]
-    },
-    regulamento: {
-        nome: "📋 Regulamento de Tráfego Aéreo",
-        questoes: [
-            { p: "O voo VFR é realizado segundo regras de:", o: ["Referências visuais", "Instrumentos apenas", "Controle de aproximação", "Radar"], correta: 0 },
-            { p: "O responsável pela segurança do voo é:", o: ["O controlador", "O piloto em comando", "O proprietário", "A ANAC"], correta: 1 },
-            { p: "Antes de cada voo, o piloto deve:", o: ["Verificar aeronavegabilidade, documentos e condições", "Apenas abastecer", "Apenas consultar tempo", "Avisar a torre"], correta: 0 },
-            { p: "O plano de voo deve ser apresentado com antecedência mínima de:", o: ["30 minutos", "1 hora", "2 horas", "No dia anterior"], correta: 0 },
-            { p: "A alteração de plano de voo deve ser comunicada:", o: ["Ao chegar ao destino", "Assim que possível", "Apenas se mudar de aeroporto", "Não é necessário"], correta: 1 },
-            { p: "Em aproximação para pouso, tem prioridade:", o: ["A aeronave mais rápida", "A que estiver em menor altitude e final", "A maior", "A que chegou primeiro"], correta: 1 },
-            { p: "A aeronave que tiver a outra à sua direita deve:", o: ["Passar por cima", "Ceder a passagem", "Acelerar", "Manter rumo"], correta: 1 },
-            { p: "Ao ultrapassar, faz-se sempre pela:", o: ["Direita", "Esquerda", "Cima", "Baixo"], correta: 0 },
-            { p: "A aeronave em emergência tem prioridade sobre:", o: ["Todas as demais", "Apenas comerciais", "Aeronaves pequenas", "Ninguém"], correta: 0 },
-            { p: "A altitude mínima de segurança sobre áreas povoadas é:", o: ["500 pés", "1.000 pés acima do obstáculo mais próximo num raio de 600 m", "2.000 pés", "3.000 pés"], correta: 1 },
-            { p: "Sobre áreas despovoadas, a altitude mínima é:", o: ["500 pés acima do solo", "1.000 pés", "2.000 pés", "Altitude livre"], correta: 0 },
-            { p: "O voo VFR não é permitido quando:", o: ["Visibilidade menor que o mínimo", "Estiver nublado", "O sol se por", "Temperatura baixa"], correta: 0 },
-            { p: "A autorização de decolagem é dada por:", o: ["O proprietário", "A torre ou controle", "O passageiro", "Rádio"], correta: 1 },
-            { p: "Sem torre, a decisão de pousar é do:", o: ["Controle de rota", "Próprio piloto", "ANAC", "Prefeitura"], correta: 1 },
-            { p: "O circuito de tráfego é percorrido normalmente em:", o: ["Sentido horário", "Sentido anti-horário", "Qualquer sentido", "Sentido definido pelo vento"], correta: 1 },
-            { p: "A perna do vento é percorrida:", o: ["Na mesma direção da pista", "Paralela à pista, em sentido oposto à decolagem", "Aproximando-se da pista", "Saindo da pista"], correta: 1 },
-            { p: "A altitude de circuito é geralmente:", o: ["1.000 pés acima do nível do campo", "1.500 pés acima do mar", "500 pés acima do campo", "2.000 pés acima do mar"], correta: 0 },
-            { p: "O certificado de aeronavegabilidade deve estar:", o: ["Válido e a bordo", "Em casa", "Com o mecânico", "No escritório"], correta: 0 },
-            { p: "O piloto deve aterrissar no aeroporto alternativo quando:", o: ["Não conseguir pousar no principal", "Estiver cansado", "Acabou o combustível", "O vento mudou"], correta: 0 },
-            { p: "O sinal de cruz fechada no solo significa:", o: ["Pista livre", "Pista proibida", "Pista em manutenção", "Pista disponível"], correta: 1 }
-        ]
-    },
-    meteorologia: {
-        nome: "🌤️ Meteorologia",
-        questoes: [
-            { p: "A temperatura padrão ao nível do mar é:", o: ["+10°C", "+15°C", "+20°C", "0°C"], correta: 1 },
-            { p: "A pressão padrão ao nível do mar é:", o: ["1000 hPa", "1013,2 hPa", "1022 hPa", "998 hPa"], correta: 1 },
-            { p: "Com o aumento da altitude, a temperatura padrão:", o: ["Aumenta 2°C a cada 1.000 pés", "Diminui 2°C a cada 1.000 pés", "Não muda", "Diminui 5°C a cada 1.000 pés"], correta: 1 },
-            { p: "Quanto maior a umidade do ar, a densidade:", o: ["Aumenta", "Diminui", "Permanece igual", "Depende da pressão"], correta: 1 },
-            { p: "Ar mais quente é:", o: ["Mais denso", "Menos denso", "Mais pesado", "Mais estável"], correta: 1 },
-            { p: "A pressão atmosférica diminui aproximadamente:", o: ["1 hPa a cada 8 m", "1 hPa a cada 1 m", "1 hPa a cada 100 m", "1 hPa a cada 50 pés"], correta: 0 },
-            { p: "Voar de área de alta pressão para baixa sem ajustar o altímetro faz a aeronave:", o: ["Voar mais baixo que indicado", "Voar mais alto que indicado", "Manter altitude correta", "Subir sozinha"], correta: 0 },
-            { p: "A formação de nuvens exige:", o: ["Ar frio e seco", "Umidade, núcleos de condensação e resfriamento", "Ar quente e seco", "Apenas vento forte"], correta: 1 },
-            { p: "Nuvens baixas têm base até:", o: ["2.000 pés", "6.500 pés", "20.000 pés", "50.000 pés"], correta: 0 },
-            { p: "Nuvens cumulus têm formato:", o: ["Camada", "Torre/empilhado", "Penas", "Folha"], correta: 1 },
-            { p: "Nuvens estratiformes apresentam:", o: ["Desenvolvimento vertical", "Forma de camada extensa", "Torres altas", "Apenas no alto"], correta: 1 },
-            { p: "Nuvens cumulonimbus são associadas a:", o: ["Tempo bom", "Tempestades, turbulência e granizo", "Calma", "Névoa"], correta: 1 },
-            { p: "A visibilidade é pior com:", o: ["Ar seco", "Umidade alta, névoa ou neblina", "Vento forte", "Sol forte"], correta: 1 },
-            { p: "O vento é o movimento do ar em relação à:", o: ["Terra", "Lua", "Nuvens", "Sol"], correta: 0 },
-            { p: "O vento sopra de áreas de:", o: ["Baixa pressão para alta", "Alta pressão para baixa", "Mesma pressão", "Norte para Sul"], correta: 1 },
-            { p: "Com o vento forte, a decolagem de frente para o vento:", o: ["Aumenta distância", "Reduz distância", "Não altera", "Depende da pista"], correta: 1 },
-            { p: "Turbulência pode ser causada por:", o: ["Ar estável", "Aquecimento desigual do solo, obstáculos e tempestades", "Vento fraco", "Céu limpo"], correta: 1 },
-            { p: "Gelo em voo se forma quando:", o: ["Temperatura acima de 0°C", "Temperatura entre 0°C e -20°C e umidade", "Ar seco", "Acima de 10.000 m"], correta: 1 },
-            { p: "Gelo de estrutura aumenta:", o: ["Sustentação e diminui arrasto", "Peso e arrasto, diminui sustentação", "Apenas peso", "Apenas potência"], correta: 1 },
-            { p: "Ao encontrar condições de gelo, o piloto deve:", o: ["Continuar no mesmo nível", "Sair da área o mais rápido possível", "Descer para abaixo de 0°C se seguro", "Aumentar velocidade"], correta: 2 }
-        ]
-    }
+const chavesMaterias = {
+    teoriaVoo: 'usadas_tv',
+    conhecimentosTecnicos: 'usadas_ct',
+    navegacaoVisual: 'usadas_nv',
+    regulamento: 'usadas_rg',
+    meteorologia: 'usadas_mt'
 };
+const TOTAL_POR_MATERIA = 304;
 
-// ==================================================
-// INICIAR SIMULADO
-// ==================================================
-function iniciarMateria(nomeMateria) {
-    const materia = BANCO[nomeMateria];
-    simuladoAtual = embaralhar(materia.questoes).map(q => embaralharAlternativas(q));
-    indiceAtual = 0;
-    acertos = 0;
-    respondida = false;
-    tipoSimulado = materia.nome;
-    document.getElementById('titulo-materia').textContent = materia.nome;
-    ativarTela('simulado');
-    exibirQuestao();
-}
-
-function iniciarCompleto() {
-    const porMateria = 20;
-    let todasQuestoes = [];
-    Object.values(BANCO).forEach(materia => {
-        const selecionadas = embaralhar(materia.questoes).slice(0, porMateria);
-        todasQuestoes = todasQuestoes.concat(selecionadas.map(q => embaralharAlternativas(q)));
-    });
-    simuladoAtual = embaralhar(todasQuestoes);
-    indiceAtual = 0;
-    acertos = 0;
-    respondida = false;
-    tipoSimulado = "📝 Simulado Completo";
-    document.getElementById('titulo-materia').textContent = tipoSimulado;
-    ativarTela('simulado');
-    exibirQuestao();
-}
-
-// ==================================================
-// EXIBIR QUESTÃO
-// ==================================================
-function exibirQuestao() {
-    const q = simuladoAtual[indiceAtual];
-    document.getElementById('contador').textContent = `${indiceAtual + 1}/${simuladoAtual.length}`;
-    document.getElementById('resultado').classList.add('oculto');
-    document.getElementById('btn-prox').classList.add('oculto');
-    document.getElementById('btn-fim').classList.add('oculto');
-    respondida = false;
-
-    const area = document.getElementById('area-questao');
-    area.innerHTML = `
-        <div class="pergunta">${indiceAtual + 1}. ${q.p}</div>
-        ${q.o.map((texto, i) => `
-            <div class="opcao" data-indice="${i}" onclick="selecionarResposta(${i})">
-                ${String.fromCharCode(65 + i)}) ${texto}
-            </div>
-        `).join('')}
-    `;
-}
-
-// ==================================================
-// SELECIONAR RESPOSTA
-// ==================================================
-function selecionarResposta(indiceEscolhido) {
-    if (respondida) return;
-    respondida = true;
-
-    const q = simuladoAtual[indiceAtual];
-    const opcoes = document.querySelectorAll('.opcao');
-
-    opcoes.forEach((op, i) => {
-        op.classList.add('bloqueada');
-        if (i === q.correta) op.classList.add('correta');
-        else if (i === indiceEscolhido) op.classList.add('errada');
-    });
-
-    if (indiceEscolhido === q.correta) acertos++;
-
-    if (indiceAtual < simuladoAtual.length - 1) {
-        document.getElementById('btn-prox').classList.remove('oculto');
-    } else {
-        document.getElementById('btn-fim').classList.remove('oculto');
-    }
-}
-
-// ==================================================
-// NAVEGAÇÃO
-// ==================================================
-function proxima() {
-    indiceAtual++;
-    exibirQuestao();
-}
-
-function voltar() {
-    ativarTela('inicial');
-}
-
-function finalizar() {
-    const porcentagem = Math.round((acertos / simuladoAtual.length) * 100);
-    const aprovado = porcentagem >= 70;
-
-    const resEl = document.getElementById('resultado');
-    resEl.className = `resultado ${aprovado ? 'aprovado' : 'reprovado'}`;
-    resEl.innerHTML = `
-        ${aprovado ? '🎉 APROVADO!' : '📋 REPROVADO'}<br>
-        Acertos: ${acertos} de ${simuladoAtual.length}<br>
-        Porcentagem: ${porcentagem}%<br>
-        ${aprovado ? 'Parabéns! ✈️' : 'Estude mais e tente novamente! 💪'}
-    `;
-    resEl.classList.remove('oculto');
-
-    salvarHistorico(tipoSimulado, acertos, simuladoAtual.length, porcentagem);
-}
-
-// ==================================================
-// HISTÓRICO
-// ==================================================
-function salvarHistorico(tipo, certas, total, porcentagem) {
-    let historico = JSON.parse(localStorage.getItem('simulado_historico') || '[]');
-    historico.unshift({ tipo, certas, total, porcentagem, data: new Date().toLocaleString('pt-BR') });
-    historico = historico.slice(0, 5);
-    localStorage.setItem('simulado_historico', JSON.stringify(historico));
-    carregarHistorico();
-}
-
-function carregarHistorico() {
-    const lista = document.getElementById('lista-historico');
-    const historico = JSON.parse(localStorage.getItem('simulado_historico') || '[]');
-    if (historico.length === 0) {
-        lista.innerHTML = '<p style="color:#888;font-size:14px;">Nenhum resultado ainda.</p>';
-        return;
-    }
-    lista.innerHTML = historico.map(h => `
-        <div class="item-hist">
-            <span style="font-size:14px;">${h.tipo}</span>
-            <span style="font-weight:bold;color:${h.porcentagem >= 70 ? '#28a745' : '#dc3545'}">${h.porcentagem}%</span>
-        </div>
-    `).join('');
-}
-
-carregarHistorico();
-</script>
-</body>
-</html>
+// ===================== BANCO DE QUESTÕES =====================
+const modelos = {
+    teoriaVoo: [
+        { p: "Qual princípio explica a sustentação pela diferença de velocidade do ar?", o: ["Lei de Newton", "Princípio de Bernoulli", "Lei de Ohm", "Lei de Boyle"], correta: 1 },
+        { p: "As quatro forças em voo reto e nivelado são:", o: ["Sustentação, peso, empuxo e arrasto", "Sustentação, massa, potência e resistência", "Pressão, peso, velocidade e atrito", "Empuxo, massa, aceleração e arrasto"], correta: 0 },
+        { p: "Com o aumento da altitude, a densidade do ar:", o: ["Aumenta", "Diminui", "Permanece igual", "Aumenta apenas de dia"], correta: 1 },
+        { p: "O ângulo de ataque é entre a corda da asa e:", o: ["O vento relativo", "O horizonte", "O eixo transversal", "A proa"], correta: 0 },
+        { p: "Perda de sustentação é chamada de:", o: ["Mergulho", "Estol", "Rolamento", "Deslize"], correta: 1 },
+        { p: "Comando de arfagem:", o: ["Leme", "Elevador", "Ailerons", "Flapes"], correta: 1 },
+        { p: "Ailerons comandam:", o: ["Rolamento", "Arfagem", "Guinada", "Subida"], correta: 0 },
+        { p: "Leme atua no movimento de:", o: ["Guinada", "Rolamento", "Arfagem", "Deslize"], correta: 0 },
+        { p: "Flapes estendidos aumentam:", o: ["Sustentação e arrasto", "Velocidade máxima", "Autonomia", "Estabilidade"], correta: 0 },
+        { p: "Centro de pressão é onde:", o: ["Atua a resultante da sustentação", "Está o peso", "O arrasto é máximo", "A pressão é zero"], correta: 0 },
+        { p: "Se velocidade dobra, sustentação:", o: ["Dobra", "Quadruplica", "Triplica", "Não muda"], correta: 1 },
+        { p: "Arrasto induzido é maior em:", o: ["Baixa velocidade e alto ângulo de ataque", "Alta velocidade", "Voo rápido", "Descida"], correta: 0 },
+        { p: "Sair de estol:", o: ["Aumentar potência", "Diminuir ângulo de ataque", "Acionar flapes", "Inclinar"], correta: 1 },
+        { p: "Curva nivelada, para manter altitude:", o: ["Aumentar sustentação", "Diminuir sustentação", "Diminuir potência", "Aumentar arrasto"], correta: 0 },
+        { p: "Melhor razão de subida:", o: ["Maior ganho de altitude por tempo", "Maior ganho por distância", "Maior autonomia", "Menor consumo"], correta: 0 },
+        { p: "CG muito à frente causa:", o: ["Maior estabilidade, dificuldade de levantar o nariz", "Menor estabilidade", "Estol mais baixo", "Maior velocidade"], correta: 0 },
+        { p: "Sustentação atua sempre:", o: ["Perpendicular ao vento relativo", "Paralela ao eixo", "Para cima em relação ao solo", "Na direção do empuxo"], correta: 0 },
+        { p: "Eixo do movimento de guinada:", o: ["Longitudinal", "Transversal", "Vertical", "Lateral"], correta: 2 },
+        { p: "Envergadura é medida de:", o: ["Ponta a ponta das asas", "Raiz à ponta de uma asa", "Bordo de ataque a fuga", "Comprimento do avião"], correta: 0 },
+        { p: "Arrasto parasita aumenta com:", o: ["Quadrado da velocidade", "Metade da velocidade", "Raiz quadrada", "Linearmente"], correta: 0 },
+        { p: "Aumentar ângulo de ataque, antes do estol, sustentação:", o: ["Aumenta", "Diminui", "Não muda", "Anula-se"], correta: 0 },
+        { p: "Peso maior que a sustentação faz a aeronave:", o: ["Subir", "Descer", "Acelerar", "Parar"], correta: 1 },
+        { p: "Empuxo maior que o arrasto faz:", o: ["Desacelerar", "Acelerar", "Subir", "Descer"], correta: 1 },
+        { p: "Voo nivelado, velocidade reduzida, arrasto induzido:", o: ["Aumenta", "Diminui", "Igual", "Desaparece"], correta: 0 },
+        { p: "Estol ocorre quando o ângulo de ataque:", o: ["É muito grande e o ar se descola da asa", "É muito pequeno", "É negativo", "É constante"], correta: 0 },
+        { p: "Velocidade de estol aumenta quando:", o: ["Peso aumenta", "Peso diminui", "Combustível diminui", "Altitude diminui"], correta: 0 },
+        { p: "Flapes na decolagem permitem:", o: ["Menor velocidade de decolagem", "Maior velocidade", "Subida mais íngreme", "Maior autonomia"], correta: 0 },
+        { p: "Flapes no pouso permitem:", o: ["Menor velocidade de pouso e descida mais íngreme", "Pouso mais rápido", "Maior sustentação sem arrasto", "Parada rápida"], correta: 0 },
+        { p: "Efeito solo diminui:", o: ["Arrasto induzido", "Sustentação", "Potência", "Velocidade"], correta: 0 },
+        { p: "Fora do efeito solo, para manter altitude deve-se:", o: ["Aumentar ângulo de ataque ou potência", "Diminuir ângulo de ataque", "Manter igual", "Descer"], correta: 0 },
+        { p: "Estabilidade longitudinal é em torno do eixo:", o: ["Longitudinal", "Transversal", "Vertical", "Lateral"], correta: 1 },
+        { p: "Estabilidade lateral é em torno do eixo:", o: ["Longitudinal", "Transversal", "Vertical", "Diagonal"], correta: 0 },
+        { p: "Estabilidade direcional é em torno do eixo:", o: ["Longitudinal", "Transversal", "Vertical", "Horizontal"], correta: 2 },
+        { p: "Avião estável retorna ao equilíbrio:", o: ["Sozinho, sem intervenção", "Só com piloto", "Nunca", "Com motor reduzido"], correta: 0 },
+        { p: "CG atrás do limite traseiro torna a aeronave:", o: ["Mais estável", "Menos estável e perigosa", "Mais rápida", "Melhor para pouso"], correta: 1 },
+        { p: "Velocidade nunca excedida é marcada no velocímetro em:", o: ["Branco", "Amarelo", "Vermelho", "Verde"], correta: 2 },
+        { p: "Faixa de operação normal no velocímetro:", o: ["Branca", "Verde", "Amarela", "Vermelha"], correta: 1 },
+        { p: "Faixa de operação com flapes estendidos:", o: ["Branca", "Verde", "Amarela", "Azul"], correta: 0 },
+        { p: "Velocidade de manobra é:", o: ["Máxima para aplicação de comandos bruscos", "Máxima de voo", "Mínima de voo", "Velocidade de cruzeiro"], correta: 0 },
+        { p: "Em curva, carga aumenta devido à:", o: ["Força centrífuga", "Aumento de peso", "Diminuição de sustentação", "Aumento de arrasto"], correta: 0 },
+        { p: "Curva mais fechada, mesma velocidade, fator de carga:", o: ["Aumenta", "Diminui", "Igual", "Anula-se"], correta: 0 },
+        { p: "Fator de carga 2 significa que:", o: ["Aeronave suporta o dobro do peso aparente", "O peso dobra", "Sustentação cai pela metade", "Velocidade dobra"], correta: 0 },
+        { p: "Aumentar potência sem alterar outros comandos:", o: ["Sobe e acelera", "Sobe e desacelera", "Desce e acelera", "Desce e desacelera"], correta: 0 },
+        { p: "Diminuir potência sem alterar comandos:", o: ["Desce e pode desacelerar", "Sobe", "Desce e acelera", "Não muda"], correta: 0 },
+        { p: "Bordo de ataque é a parte:", o: ["Da asa que encontra o ar primeiro", "De onde o ar sai", "Mais grossa", "Mais fina"], correta: 0 },
+        { p: "Bordo de fuga é a parte:", o: ["De onde o ar sai da asa", "Que encontra o ar primeiro", "Superior", "Inferior"], correta: 0 },
+        { p: "Pressão dinâmica depende de:", o: ["Densidade e velocidade ao quadrado", "Pressão estática apenas", "Altitude apenas", "Temperatura"], correta: 0 },
+        { p: "Tubo de Pitot capta:", o: ["Pressão total", "Pressão estática", "Pressão dinâmica", "Temperatura"], correta: 0 },
+        { p: "Declinação magnética é diferença entre:", o: ["Norte verdadeiro e magnético", "Rumo e proa", "Latitude e longitude", "Velocidade real e indicada"], correta: 0 },
+        { p: "Desvio da bússola é causado por:", o: ["Campos magnéticos da própria aeronave", "Declinação", "Vento", "Terreno"], correta: 0 },
+        { p: "Efeito secundário do aileron é:", o: ["Guinada contrária à curva", "Rolamento contrário", "Subida", "Descida"], correta: 0 },
+        { p: "Para neutralizar guinada adversa usa-se:", o: ["Leme coordenado", "Elevador", "Flapes", "Aumentar potência"], correta: 0 },
+        { p: "Compensador serve para:", o: ["Aliviar esforço no comando", "Aumentar sustentação", "Diminuir arrasto", "Estabilizar"], correta: 0 },
+        { p: "Flutter é:", o: ["Vibração auto-sustentada destrutiva", "Vibração normal", "Trepidação do motor", "Ruído"], correta: 0 },
+        { p: "Velocidade estrutural máxima é:", o: ["VNE — nunca exceder", "VNO — normal", "VA — manobra", "VFE — flapes"], correta: 0 },
+        { p: "Centro de gravidade é ponto onde:", o: ["Todo o peso pode ser considerado concentrado", "A sustentação atua", "O arrasto é zero", "O empuxo atua"], correta: 0 },
+        { p: "Momento é produto de:", o: ["Força × braço", "Peso × velocidade", "Massa × aceleração", "Distância × tempo"], correta: 0 },
+        { p: "Diedro aumenta estabilidade:", o: ["Lateral", "Longitudinal", "Direcional", "De guinada"], correta: 0 },
+        { p: "Fator de carga em curva depende de:", o: ["Inclinação", "Velocidade apenas", "Altitude", "Peso"], correta: 0 },
+        { p: "Efeito do solo aumenta sustentação quando:", o: ["Abaixo da envergadura da asa", "Acima de 1.000 pés", "Em voo cruzeiro", "Só no pouso"], correta: 0 }
+    ],
+    conhecimentosTecnicos: [
+        { p: "Qual é o princípio de funcionamento do motor a combustão?", o: ["Admissão, compressão, explosão, exaustão", "Injeção, compressão, ignição, resfriamento", "Entrada, mistura, queima, saída", "Aspiração, pressão, combustão, ventilação"], correta: 0 },
+        { p: "O que controla a quantidade de ar que entra no motor?", o: ["Acelerador", "Chave magnética", "Bomba de combustível", "Válvula de descarga"], correta: 0 },
+        { p: "A mistura ar-combustível é enriquecida quando:", o: ["Diminui a altitude", "Aumenta a altitude", "Aumenta a velocidade", "Diminui a temperatura"], correta: 0 },
+        { p: "O que indica a temperatura da cabeça do cilindro?", o: ["TCC", "Temperatura do óleo", "Pressão do combustível", "RPM"], correta: 0 },
+        { p: "Óleo no motor serve principalmente para:", o: ["Lubrificar, resfriar e vedar", "Aumentar potência", "Limpar o motor", "Gerar pressão"], correta: 0 },
+        { p: "Baixa pressão do óleo indica:", o: ["Falta de óleo ou bomba com problema", "Motor muito frio", "RPM muito alto", "Combustível demais"], correta: 0 },
+        { p: "A hélice converte energia do motor em:", o: ["Empuxo", "Pressão", "Calor", "Velocidade"], correta: 0 },
+        { p: "Passo fixo significa que:", o: ["O ângulo das pás não muda", "A rotação é constante", "A potência é fixa", "O empuxo é sempre igual"], correta: 0 },
+        { p: "Passo variável permite:", o: ["Melhor eficiência em diferentes velocidades", "Maior potência constante", "Menor consumo apenas", "Parada rápida"], correta: 0 },
+        { p: "Comando de mistura serve para:", o: ["Regular a proporção ar/combustível", "Controlar a entrada de ar", "Ligar o motor", "Regular a rotação"], correta: 0 },
+        { p: "Quando subimos devemos:", o: ["Empobrecer a mistura", "Enriquecer a mistura", "Manter igual", "Desligar bomba auxiliar"], correta: 0 },
+        { p: "Resfriamento do motor ocorre por:", o: ["Ar e óleo", "Água e ar", "Óleo e água", "Apenas ar"], correta: 0 },
+        { p: "Carburador mistura:", o: ["Ar e combustível", "Combustível e óleo", "Ar e óleo", "Todos os fluidos"], correta: 0 },
+        { p: "Gelo no carburador forma porque:", o: ["Expansão do gás resfria internamente", "Temperatura externa baixa", "Umidade muito alta", "Vento frio"], correta: 0 },
+        { p: "Sintoma de gelo no carburador:", o: ["Queda de RPM e funcionamento irregular", "Aumento de velocidade", "Motor mais silencioso", "Aumento de pressão"], correta: 0 },
+        { p: "Para remover gelo do carburador usa-se:", o: ["Aquecedor do carburador", "Mais combustível", "Maior rotação", "Ar quente externo"], correta: 0 },
+        { p: "Bomba de combustível acionada pelo motor falha, o que usar?", o: ["Bomba auxiliar/elétrica", "Mais pressão", "Descer rápido", "Mistura rica"], correta: 0 },
+        { p: "Pressão de combustível muito alta indica:", o: ["Regulador com problema", "Tanque cheio", "Linha entupida", "Bomba fraca"], correta: 0 },
+        { p: "Válvula seletora de combustível serve para:", o: ["Escolher de qual tanque bombear", "Regular pressão", "Fechar o sistema", "Misturar combustível"], correta: 0 },
+        { p: "Antes de ligar o motor deve-se verificar:", o: ["Área livre, hélice livre, chave fora", "Pressão de óleo", "Temperatura", "Nível de combustível"], correta: 0 },
+        { p: "Motor não liga, com combustível, verificar:", o: ["Chave magnética, contatos, vela", "Óleo", "Rotação", "Temperatura"], correta: 0 },
+        { p: "Fumaça branca pelo escapamento indica:", o: ["Água no combustível ou cabeça do cilindro", "Combustível demais", "Óleo no motor", "Ar no sistema"], correta: 0 },
+        { p: "Fumaça preta indica:", o: ["Mistura muito rica", "Mistura muito pobre", "Óleo queimando", "Motor frio"], correta: 0 },
+        { p: "Fumaça azulada indica:", o: ["Óleo sendo queimado", "Combustível demais", "Água no sistema", "Motor muito quente"], correta: 0 },
+        { p: "Aquecimento excessivo do motor pode ser causado por:", o: ["Mistura muito pobre, baixa rotação, falta de óleo", "Mistura rica", "Rotação baixa", "Combustível demais"], correta: 0 },
+        { p: "Para resfriar motor superaquecido:", o: ["Aumentar rotação, reduzir potência, abrir persiana", "Desligar imediatamente", "Mistura rica", "Descer rápido em marcha lenta"], correta: 0 },
+        { p: "Pressão de admissão é medida no:", o: ["Coletor de admissão", "Carburador", "Filtro de ar", "Escapamento"], correta: 0 },
+        { p: "Com rotação constante, ao subir a pressão de admissão:", o: ["Diminui", "Aumenta", "Não muda", "Depende do motor"], correta: 0 },
+        { p: "Chave magnética tem posições:", o: ["DESL, LIG, BOTH, ESQ, DIR", "LIG, DESL, AUX", "ON, OFF, START", "0, 1, 2, 3"], correta: 0 },
+        { p: "Em voo deve-se manter chave magnética em:", o: ["BOTH (ambos)", "ESQ", "DIR", "LIG"], correta: 0 },
+        { p: "Se um lado da ignição falhar:", o: ["Verificar chave, testar cada lado", "Desligar o motor", "Aterrissar imediatamente", "Aumentar rotação"], correta: 0 },
+        { p: "Velas de ignição sujas causam:", o: ["Falha na ignição, funcionamento irregular", "Motor muito potente", "Baixo consumo", "Pressão alta"], correta: 0 },
+        { p: "Bateria serve principalmente para:", o: ["Alimentar sistema elétrico com motor parado ou baixa rotação", "Aumentar potência", "Dar partida apenas", "Manter tensão constante"], correta: 0 },
+        { p: "Alternador carrega:", o: ["Bateria e alimenta sistema elétrico", "Apenas a bateria", "Apenas o painel", "O motor"], correta: 0 },
+        { p: "Falha do alternador indica:", o: ["Carga baixa ou nula, usar bateria com economia", "Motor desligando", "Perda de potência", "Sobrecarga"], correta: 0 },
+        { p: "Disjuntor desarmado significa:", o: ["Sobrecarga no circuito", "Falta de combustível", "Motor parando", "Bateria cheia"], correta: 0 },
+        { p: "Para religar disjuntor espera-se:", o: ["Alguns segundos e religa uma vez", "Imediatamente", "Não religa", "Depois de pousar"], correta: 0 },
+        { p: "Fusível queimado deve ser substituído por:", o: ["Mesma amperagem", "Maior amperagem", "Menor amperagem", "Fio de cobre"], correta: 0 },
+        { p: "Freio de estacionamento deve ficar:", o: ["Acionado com aeronave parada", "Sempre acionado", "Acionado em voo", "Solto no pouso"], correta: 0 },
+        { p: "Freios de pé servem para:", o: ["Frenagem individual no solo", "Frenagem em voo", "Controle de direção em voo", "Parada de emergência"], correta: 0 },
+        { p: "Vazamento hidráulico causa:", o: ["Perda de pressão, freios fracos", "Motor parando", "Falha elétrica", "Baixa de combustível"], correta: 0 },
+        { p: "Pneus com desgaste excessivo:", o: ["Risco de estouro, trocar", "Apenas desconforto", "Maior aderência", "Melhor frenagem"], correta: 0 },
+        { p: "Trem de pouso fixo tem vantagem:", o: ["Simplicidade, sem mecanismo", "Menor arrasto", "Maior velocidade", "Melhor estabilidade"], correta: 0 },
+        { p: "Semáforo de posição: vermelho indica:", o: ["Bombordo/esquerda", "Estibordo/direita", "Cauda", "Nariz"], correta: 0 },
+        { p: "Semáforo de posição: verde indica:", o: ["Estibordo/direita", "Bombordo/esquerda", "Cauda", "Nariz"], correta: 0 },
+        { p: "Semáforo de posição: branco indica:", o: ["Cauda/retaguarda", "Frente", "Esquerda", "Direita"], correta: 0 },
+        { p: "Farol de pouso serve para:", o: ["Iluminar pista e ser visto", "Navegação noturna", "Sinalização", "Inspeção"], correta: 0 },
+        { p: "Bússola magnética deve ser compensada:", o: ["Periodicamente e após alterações", "Todo dia", "Apenas na fábrica", "Nunca"], correta: 0 },
+        { p: "Limites de peso e equilíbrio estão no:", o: ["Manual de Voo/Avião", "Diário de bordo", "Anotações do piloto", "Certificado de matrícula"], correta: 0 },
+        { p: "Peso máximo de decolagem não deve ser:", o: ["Ultrapassado em hipótese alguma", "Ultrapassado com autorização", "Ultrapassado de dia", "Ajustado pelo piloto"], correta: 0 },
+        { p: "Diário de bordo é documento:", o: ["Obrigatório e atualizado", "Opcional", "Para passageiros", "Da ANAC apenas"], correta: 0 },
+        { p: "Falha de motor em voo, primeira ação:", o: ["Melhorar velocidade de planeio", "Acionar bomba", "Mistura rica", "Desligar chave"], correta: 0 },
+        { p: "Plano de pouso sem motor escolhe:", o: ["Local adequado, não tentar voltar longe", "O aeródromo mais próximo sempre", "Campo qualquer", "Pouso na água"], correta: 0 },
+        { p: "Chave geral desligada corta:", o: ["Energia de todo o sistema", "Apenas rádio", "Apenas luzes", "Motor"], correta: 0 },
+        { p: "Com chave geral desligada, o que funciona?", o: ["Bússola magnética, relógio mecânico", "Tudo", "Nada", "Apenas rádio"], correta: 0 },
+        { p: "Manutenção preventiva é feita:", o: ["Conforme plano do fabricante", "Quando quebrar", "Todo ano", "A pedido do piloto"], correta: 0 },
+        { p: "Aeronave com inspeção vencida:", o: ["Não pode voar", "Pode com autorização", "Pode de dia", "Pode para manutenção"], correta: 0 },
+        { p: "Responsável pela aeronave em voo é:", o: ["O Comandante/Piloto em Comando", "O proprietário", "A ANAC", "O mecânico"], correta: 0 }
+    ],
+    navegacaoVisual: [
+        { p: "Rumo verdadeiro é medido de:", o: ["Norte verdadeiro", "Norte magnético", "Norte da bússola", "Posição atual"], correta: 0 },
+        { p: "Rumo magnético é medido de:", o: ["Norte magnético", "Norte verdadeiro", "Declinação", "Desvio"], correta: 0 },
+        { p: "Velocidade no solo é:", o: ["Com efeito do vento", "Velocidade indicada", "Corrigida de altitude", "Sem vento"], correta: 0 },
+        { p: "Com vento de proa, velocidade no solo:", o: ["Diminui", "Aumenta", "Igual", "Depende da altitude"], correta: 0 },
+        { p: "Com vento de cauda, velocidade no solo:", o: ["Aumenta", "Diminui", "Igual", "Depende do piloto"], correta: 0 },
+        { p: "Vento cruzado desvia a aeronave:", o: ["Para o lado de onde sopra", "Para o lado oposto", "Não desvia", "Para frente"], correta: 0 },
+        { p: "Correção de deriva serve para:", o: ["Manter proa sobre a rota", "Aumentar velocidade", "Diminuir consumo", "Corrigir altitude"], correta: 0 },
+        { p: "Latitude mede de:", o: ["Equador ao Polo", "Greenwich ao Polo", "Norte a Sul", "Leste a Oeste"], correta: 0 },
+        { p: "Longitude mede de:", o: ["Meridiano de Greenwich", "Equador", "Linha internacional", "Polo Norte"], correta: 0 },
+        { p: "Um grau de latitude equivale a:", o: ["60 milhas náuticas", "60 km", "1.852 metros", "100 milhas"], correta: 0 },
+        { p: "Milha náutica equivale a:", o: ["1.852 metros", "1.000 metros", "1.609 metros", "1.500 metros"], correta: 0 },
+        { p: "Nó é unidade de:", o: ["Velocidade — milhas/hora", "Distância", "Tempo", "Altitude"], correta: 0 },
+        { p: "Altitude pressão usa ajuste:", o: ["QNH", "1013", "QFE", "QNE"], correta: 0 },
+        { p: "Altitude verdadeira é distância acima de:", o: ["Nível do mar", "Solo", "Aeródromo", "Montanhas"], correta: 0 },
+        { p: "Tempo de voo = distância / velocidade no solo", o: ["Verdadeiro", "Falso", "Depende do vento", "Só de dia"], correta: 0 },
+        { p: "Vento a 270° significa que vem do:", o: ["Oeste", "Leste", "Norte", "Sul"], correta: 0 },
+        { p: "Proa é direção apontada pelo:", o: ["Nariz da aeronave", "Vento", "Solo", "Rota"], correta: 0 },
+        { p: "Rumo é direção que se quer:", o: ["Seguir", "Apontar", "Voar sem vento", "Desviar"], correta: 0 },
+        { p: "Deriva é diferença entre:", o: ["Proa e Rumo", "Velocidade real e indicada", "Latitude e Longitude", "Altitude e Pressão"], correta: 0 },
+        { p: "Para calcular velocidade média usa-se:", o: ["Distância total / Tempo total", "Velocidade de cruzeiro", "Velocidade no solo", "Velocidade do ar"], correta: 0 },
+        { p: "Linha de posição é:", o: ["Linha onde a aeronave pode estar", "Rota de voo", "Rumo magnético", "Distância percorrida"], correta: 0 },
+        { p: "Interseção de duas linhas dá:", o: ["Posição estimada", "Rumo verdadeiro", "Velocidade no solo", "Tempo de voo"], correta: 0 },
+        { p: "Reserva de combustível para VFR diurno é:", o: ["30 minutos", "45 minutos", "1 hora", "1h30"], correta: 0 },
+        { p: "Reserva noturna é:", o: ["45 minutos", "30 minutos", "1 hora", "1h30"], correta: 0 },
+        { p: "QFE ajustado dá altitude acima de:", o: ["Aeródromo", "Nível do mar", "Montanhas", "Ponto de referência"], correta: 0 },
+        { p: "QNE é ajuste padrão:", o: ["1013,2 hPa", "1000 hPa", "1022 hPa", "998 hPa"], correta: 0 },
+        { p: "Plano de voo informa:", o: ["Dados do voo, aeronave, rota, tempo", "Apenas combustível", "Apenas passageiros", "Apenas piloto"], correta: 0 },
+        { p: "Cancelar plano de voo faz-se:", o: ["Após pouso no destino", "No meio do voo", "Antes de decolar", "Não se cancela"], correta: 0 },
+        { p: "Altura é distância acima de:", o: ["Solo", "Nível do mar", "Aeródromo", "Nuvem"], correta: 0 },
+        { p: "Nível de voo é referenciado a:", o: ["1013,2 hPa", "QNH local", "QFE", "Altitude real"], correta: 0 },
+        { p: "Bússola indica corretamente em voo:", o: ["Reto e nivelado", "Curva", "Subida", "Descida"], correta: 0 },
+        { p: "Desacelerando, a bússola indica virada para:", o: ["Sul", "Norte", "Leste", "Oeste"], correta: 0 },
+        { p: "Pontos de referência para navegação visual:", o: ["Rios, estradas, cidades, ferrovias", "Apenas aeroportos", "Apenas montanhas", "Nuvens"], correta: 0 },
+        { p: "Navegação por estimativa usa:", o: ["Tempo, velocidade, rumo", "Apenas visada", "Rádio", "GPS"], correta: 0 },
+        { p: "Erro de estimativa aumenta com:", o: ["Tempo de voo", "Altitude", "Velocidade", "Combustível"], correta: 0 },
+        { p: "Visada direta é:", o: ["Ver e seguir ponto", "Calcular rota", "Usar rádio", "Esperar sinal"], correta: 0 },
+        { p: "Carta aeronáutica brasileira oficial é:", o: ["SCN", "SIG", "CNB", "ANAC"], correta: 0 },
+        { p: "Declinação leste significa que o norte magnético está:", o: ["À direita do verdadeiro", "À esquerda", "Atrás", "Além"], correta: 0 },
+        { p: "Para converter rumo verdadeiro em magnético, declinação oeste:", o: ["Subtrai", "Adiciona", "Multiplica", "Divide"], correta: 0 },
+        { p: "Proa magnética = proa verdadeira", o: ["- declinação + desvio", "+ declinação - desvio", "× declinação", "/ desvio"], correta: 0 },
+        { p: "Tempo sobrevoando ponto A 10h00, ponto B 10h30, distância 30NM, velocidade:", o: ["60 nós", "90 nós", "30 nós", "15 nós"], correta: 0 },
+        { p: "Ao cruzar linha costeira deve-se:", o: ["Identificar pontos de referência", "Subir altitude", "Aumentar velocidade", "Descer"], correta: 0 },
+        { p: "Ponto de verificação serve para:", o: ["Confirmar posição", "Aumentar velocidade", "Corrigir combustível", "Mudar frequência"], correta: 0 },
+        { p: "Vento favorece quando vem de:", o: ["Cauda", "Proa", "Lado", "Frente"], correta: 0 },
+        { p: "Vento prejudica quando vem de:", o: ["Proa", "Cauda", "Lado", "Costas"], correta: 0 },
+        { p: "Calcular consumo = tempo × consumo/hora", o: ["Verdadeiro", "Falso", "Só com vento", "Só de noite"], correta: 0 },
+        { p: "Altitude de transição é:", o: ["Altitude para mudar de ajuste", "Altitude máxima", "Altitude de cruzeiro", "Altitude mínima"], correta: 0 },
+        { p: "Separação de tráfego por altitude é baseada em:", o: ["Níveis de voo", "Altitude verdadeira", "Visibilidade", "Tempo"], correta: 0 },
+        { p: "Rota de saída visual é:", o: ["Definida por pontos visíveis", "Por rádio", "Automática", "Não existe"], correta: 0 },
+        { p: "Plano de voo deve ser submetido antes da decolagem com:", o: ["Antecedência", "Só na hora", "Depois de decolar", "Não é obrigatório"], correta: 0 }
+    ],
+    regulamento: [
+        { p: "Quem tem autoridade sobre a aeronave em voo?", o: ["O Piloto em Comando", "O proprietário", "A ANAC", "O controlador"], correta: 0 },
+        { p: "Regulamento aplicável a aeronaves civis no Brasil é:", o: ["RBAC", "ICAO", "FAA", "EASA"], correta: 0 },
+        { p: "Voo VFR é voo por:", o: ["Referência visual externa", "Instrumentos", "Rádio", "GPS"], correta: 0 },
+        { p: "Voo IFR é voo por:", o: ["Instrumentos", "Visão externa", "Referência visual", "Mapa"], correta: 0 },
+        { p: "Mínimos de visibilidade para VFR diurno em área controlada:", o: ["5 km", "3 km", "8 km", "10 km"], correta: 0 },
+        { p: "Altitude mínima de voo VFR sobre área povoada:", o: ["1.000 pés acima do obstáculo mais próximo", "500 pés", "2.000 pés", "3.000 pés"], correta: 0 },
+        { p: "Sobre mar ou área despovoada, altitude mínima VFR:", o: ["500 pés", "1.000 pés", "1.500 pés", "2.000 pés"], correta: 0 },
+        { p: "Regra de passagem à frente, qual tem preferência?", o: ["A que vem pela direita", "A que vem pela esquerda", "A mais rápida", "A maior"], correta: 0 },
+        { p: "
