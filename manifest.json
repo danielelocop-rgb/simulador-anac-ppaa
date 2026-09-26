@@ -1,8 +1,9 @@
 {
   "name": "Simulado PP — Piloto Privado",
   "short_name": "Simulado PP",
-  "description": "Simulador de questões para Piloto Privado PPA",
+  "description": "Simulador de questões para Piloto Privado",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#eaf2f8",
   "theme_color": "#003366",
@@ -11,12 +12,14 @@
     {
       "src": "aviao-icone.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "aviao-icone.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
